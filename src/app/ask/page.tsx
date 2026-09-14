@@ -101,7 +101,7 @@ export default function AskPage() {
                   placeholder="e.g., What happens if I terminate early?"
                   className="flex-1 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
                   disabled={isLoading}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAsk()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
                 />
                 <button
                   onClick={handleAsk}
