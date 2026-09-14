@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { Navigation } from '@/components/ui/navigation';
 import { DocumentUpload } from '@/components/ui/document-upload';
 import { FileText, Loader2, AlertCircle } from 'lucide-react';
+import { DocumentAnalysis } from '@/lib/ai/provider';
 
 export default function DocumentsPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<DocumentAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -116,7 +117,7 @@ export default function DocumentsPage() {
                   <div className="bg-white rounded-lg border border-slate-200 p-6">
                     <h2 className="text-xl font-bold text-slate-900 mb-4">Key Clauses</h2>
                     <div className="space-y-4">
-                      {analysis.keyClauses.map((clause: any, index: number) => (
+                      {analysis.keyClauses.map((clause, index: number) => (
                         <div key={index} className="border border-slate-200 rounded-lg p-4">
                           <h3 className="font-semibold text-slate-900 mb-2">{clause.title}</h3>
                           <p className="text-sm text-slate-700 mb-2">{clause.summary}</p>
@@ -134,7 +135,7 @@ export default function DocumentsPage() {
                   <div className="bg-white rounded-lg border border-slate-200 p-6">
                     <h2 className="text-xl font-bold text-slate-900 mb-4">Obligations</h2>
                     <div className="space-y-3">
-                      {analysis.obligations.map((obligation: any, index: number) => (
+                      {analysis.obligations.map((obligation, index: number) => (
                         <div key={index} className="border border-slate-200 rounded-lg p-4">
                           <div className="flex items-start justify-between mb-2">
                             <h3 className="font-semibold text-slate-900">{obligation.party}</h3>
@@ -151,7 +152,7 @@ export default function DocumentsPage() {
                   <div className="bg-white rounded-lg border border-slate-200 p-6">
                     <h2 className="text-xl font-bold text-slate-900 mb-4">Deadlines</h2>
                     <div className="space-y-3">
-                      {analysis.deadlines.map((deadline: any, index: number) => (
+                      {analysis.deadlines.map((deadline, index: number) => (
                         <div key={index} className="border border-slate-200 rounded-lg p-4">
                           <div className="flex items-start justify-between mb-2">
                             <h3 className="font-semibold text-slate-900">{deadline.type}</h3>

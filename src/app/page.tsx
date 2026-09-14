@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { Navigation } from '@/components/ui/navigation';
 import { DocumentUpload } from '@/components/ui/document-upload';
 import { Scale, Upload, FileText, AlertCircle } from 'lucide-react';
+import { DocumentAnalysis } from '@/lib/ai/provider';
 
 export default function Home() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<DocumentAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleUpload = async (file: File) => {
@@ -177,7 +178,7 @@ export default function Home() {
                       <div>
                         <h3 className="text-lg font-semibold text-slate-900 mb-2">Key Clauses</h3>
                         <div className="space-y-4">
-                          {analysis.keyClauses.map((clause: any, index: number) => (
+                          {analysis.keyClauses.map((clause, index: number) => (
                             <div key={index} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                               <h4 className="font-medium text-slate-900 mb-2">{clause.title}</h4>
                               <p className="text-sm text-slate-700 mb-2">{clause.summary}</p>
@@ -195,7 +196,7 @@ export default function Home() {
                       <div>
                         <h3 className="text-lg font-semibold text-slate-900 mb-2">Potential Concerns</h3>
                         <div className="space-y-4">
-                          {analysis.risks.map((risk: any, index: number) => (
+                          {analysis.risks.map((risk, index: number) => (
                             <div key={index} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                               <div className="flex items-start justify-between mb-2">
                                 <h4 className="font-medium text-slate-900">{risk.title}</h4>
@@ -224,7 +225,7 @@ export default function Home() {
                       <div>
                         <h3 className="text-lg font-semibold text-slate-900 mb-2">Action Checklist</h3>
                         <ul className="space-y-2">
-                          {analysis.actionChecklist.map((item: any, index: number) => (
+                          {analysis.actionChecklist.map((item, index: number) => (
                             <li key={index} className="flex items-start space-x-3">
                               <input
                                 type="checkbox"

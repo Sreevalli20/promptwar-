@@ -5,10 +5,11 @@ import { Navigation } from '@/components/ui/navigation';
 import { DocumentUpload } from '@/components/ui/document-upload';
 import { RiskBadge } from '@/components/ui/risk-badge';
 import { Shield, AlertTriangle, Loader2 } from 'lucide-react';
+import { DocumentAnalysis } from '@/lib/ai/provider';
 
 export default function RiskReviewPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<DocumentAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [severityFilter, setSeverityFilter] = useState<'ALL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO'>('ALL');
@@ -41,7 +42,7 @@ export default function RiskReviewPage() {
     }
   };
 
-  const filteredRisks = analysis?.risks?.filter((risk: any) => 
+  const filteredRisks = analysis?.risks?.filter((risk) => 
     severityFilter === 'ALL' || risk.severity === severityFilter
   ) || [];
 
@@ -123,10 +124,10 @@ export default function RiskReviewPage() {
                 <div className="bg-white rounded-lg border border-slate-200 p-4">
                   <h3 className="font-semibold text-slate-900 mb-3">Filter by Severity</h3>
                   <div className="flex flex-wrap gap-2">
-                    {['ALL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'].map((severity) => (
+                    {(['ALL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'] as const).map((severity) => (
                       <button
                         key={severity}
-                        onClick={() => setSeverityFilter(severity as any)}
+                        onClick={() => setSeverityFilter(severity)}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                           severityFilter === severity
                             ? 'bg-slate-900 text-white'
@@ -141,7 +142,7 @@ export default function RiskReviewPage() {
 
                 {filteredRisks.length > 0 ? (
                   <div className="space-y-4">
-                    {filteredRisks.map((risk: any, index: number) => (
+                    {filteredRisks.map((risk, index: number) => (
                       <div key={index} className="bg-white rounded-lg border border-slate-200 p-6">
                         <div className="flex items-start justify-between mb-3">
                           <h3 className="text-lg font-semibold text-slate-900">{risk.title}</h3>

@@ -88,7 +88,8 @@ export class GroqProvider implements AIProvider {
       return data.choices[0]?.message?.content || '';
     } catch (error) {
       clearTimeout(timeoutId);
-      console.error('Groq API call failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Groq API call failed: ${errorMessage}`);
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Groq API request timeout');
       }
@@ -249,12 +250,12 @@ Respond ONLY with valid JSON. No other text.`;
       const parsed = JSON.parse(jsonMatch[0]);
       if (!Array.isArray(parsed)) throw new Error('Expected array');
       
-      return parsed.map((item: any) => ({
+      return parsed.map((item: { category?: string; documentA?: string; documentB?: string; changeType?: string; importance?: string; explanation?: string }) => ({
         category: item.category || 'General',
         documentA: item.documentA || 'Not specified',
         documentB: item.documentB || 'Not specified',
-        changeType: item.changeType || 'UNCHANGED',
-        importance: item.importance || 'LOW',
+        changeType: (item.changeType === 'ADDED' || item.changeType === 'REMOVED' || item.changeType === 'MODIFIED' || item.changeType === 'UNCHANGED') ? item.changeType : 'UNCHANGED',
+        importance: (item.importance === 'HIGH' || item.importance === 'MEDIUM' || item.importance === 'LOW') ? item.importance : 'LOW',
         explanation: item.explanation || '',
       }));
     } catch (error) {
@@ -263,31 +264,31 @@ Respond ONLY with valid JSON. No other text.`;
     }
   }
 
-  private validateAnalysis(data: any): DocumentAnalysis {
+  private validateAnalysis(data: { summary?: string; parties?: unknown; purpose?: string; keyClauses?: unknown; obligations?: unknown; deadlines?: unknown; termination?: string; risks?: unknown; missingInformation?: unknown; questionsForLawyer?: unknown; actionChecklist?: unknown; disclaimer?: string }): DocumentAnalysis {
     return {
       summary: data.summary || 'No summary available',
       parties: Array.isArray(data.parties) ? data.parties : [],
       purpose: data.purpose || 'Purpose not identified',
-      keyClauses: Array.isArray(data.keyClauses) ? data.keyClauses.map((c: any) => ({
+      keyClauses: Array.isArray(data.keyClauses) ? data.keyClauses.map((c: { title?: string; summary?: string; whyItMatters?: string; source?: string }) => ({
         title: c.title || 'Untitled',
         summary: c.summary || '',
         whyItMatters: c.whyItMatters || '',
         source: c.source,
       })) : [],
-      obligations: Array.isArray(data.obligations) ? data.obligations.map((o: any) => ({
+      obligations: Array.isArray(data.obligations) ? data.obligations.map((o: { party?: string; obligation?: string; details?: string }) => ({
         party: o.party || 'Unknown',
         obligation: o.obligation || '',
         details: o.details || '',
       })) : [],
-      deadlines: Array.isArray(data.deadlines) ? data.deadlines.map((d: any) => ({
+      deadlines: Array.isArray(data.deadlines) ? data.deadlines.map((d: { type?: string; date?: string; description?: string }) => ({
         type: d.type || 'Deadline',
         date: d.date || 'Not specified',
         description: d.description || '',
       })) : [],
       termination: data.termination || 'Termination terms not specified',
-      risks: Array.isArray(data.risks) ? data.risks.map((r: any) => ({
+      risks: Array.isArray(data.risks) ? data.risks.map((r: { title?: string; severity?: string; description?: string; whyItMatters?: string; source?: string; recommendedAction?: string }) => ({
         title: r.title || 'Risk',
-        severity: ['HIGH', 'MEDIUM', 'LOW', 'INFO'].includes(r.severity) ? r.severity : 'INFO',
+        severity: (r.severity === 'HIGH' || r.severity === 'MEDIUM' || r.severity === 'LOW' || r.severity === 'INFO') ? r.severity : 'INFO',
         description: r.description || '',
         whyItMatters: r.whyItMatters || '',
         source: r.source,
@@ -295,7 +296,7 @@ Respond ONLY with valid JSON. No other text.`;
       })) : [],
       missingInformation: Array.isArray(data.missingInformation) ? data.missingInformation : [],
       questionsForLawyer: Array.isArray(data.questionsForLawyer) ? data.questionsForLawyer : [],
-      actionChecklist: Array.isArray(data.actionChecklist) ? data.actionChecklist.map((a: any) => ({
+      actionChecklist: Array.isArray(data.actionChecklist) ? data.actionChecklist.map((a: { item?: string; completed?: boolean }) => ({
         item: a.item || '',
         completed: Boolean(a.completed),
       })) : [],

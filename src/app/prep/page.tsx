@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { Navigation } from '@/components/ui/navigation';
 import { DocumentUpload } from '@/components/ui/document-upload';
 import { CheckSquare, Loader2, AlertCircle } from 'lucide-react';
+import { DocumentAnalysis } from '@/lib/ai/provider';
 
 export default function PrepPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<DocumentAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -126,7 +127,7 @@ export default function PrepPage() {
                       Complete these items based on your document analysis:
                     </p>
                     <ul className="space-y-3">
-                      {analysis.actionChecklist.map((item: any, index: number) => (
+                      {analysis.actionChecklist.map((item, index: number) => (
                         <li key={index} className="flex items-start space-x-3">
                           <input
                             type="checkbox"

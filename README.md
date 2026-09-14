@@ -278,7 +278,7 @@
 
 ## Deployment
 
-LexiGuard is designed for seamless deployment on both Vercel and Render platforms using the same codebase. The application uses standard Next.js patterns that work with both serverless (Vercel) and containerized (Render) deployments.
+LexiGuard is designed for deployment on both Vercel and Render platforms using the same codebase. The application uses standard Next.js patterns that work with both serverless (Vercel) and containerized (Render) deployments.
 
 ### Vercel Deployment (Recommended)
 1. **Push code to GitHub repository**
@@ -406,7 +406,7 @@ This implementation is deliberately optimized against the Hack2Skill evaluator r
 - **Bounded Context:** Document text limited to prevent excessive API usage
 - **Single Analysis:** One AI call per document, results reused for Q&A
 - **Controlled Fallback:** Maximum 2 retries with exponential backoff
-- **No Duplicate Processing:** Analysis results cached for session
+- **Stateless Architecture:** No session caching, suitable for serverless deployment
 - **Minimal Dependencies:** Only essential packages, no bloat
 - **Serverless Compatible:** No local file dependencies, Vercel-ready
 
@@ -453,6 +453,7 @@ This implementation is deliberately optimized against the Hack2Skill evaluator r
 - **Single-Request Processing:** Each API call processes documents independently
 - **Minimal Dependencies:** Only essential packages installed
 - **Serverless Design:** No local file dependencies, suitable for both platforms
+- **No Caching:** Stateless architecture suitable for serverless deployment
 
 ### Testing Implementation
 - **Vitest Framework:** Modern test runner for TypeScript
@@ -509,11 +510,12 @@ This implementation is deliberately optimized against the Hack2Skill evaluator r
 
 - **AI Limitations:** AI may misinterpret complex legal language or miss jurisdiction-specific nuances
 - **Provider Limits:** Groq and Hugging Face have rate limits and availability constraints
-- **Document Extraction:** PDF parsing may not preserve perfect formatting or complex layouts
+- **Document Extraction:** PDF parsing requires text-based PDFs; scanned/image-only PDFs are not supported (no OCR)
 - **Legal Jurisdiction:** Not optimized for specific legal jurisdictions or local laws
 - **Document Size:** Limited to 10MB files and 100,000 characters of text
 - **Language:** Optimized for English-language documents
 - **No Legal Advice:** Does not provide legally binding interpretations or advice
+- **No Caching:** Stateless architecture - document analysis is not cached between sessions
 
 ## Supported File Formats
 

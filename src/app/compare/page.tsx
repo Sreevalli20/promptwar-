@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { Navigation } from '@/components/ui/navigation';
 import { DocumentUpload } from '@/components/ui/document-upload';
 import { Scale, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
+import { ComparisonResult } from '@/lib/ai/provider';
 
 export default function ComparePage() {
   const [fileA, setFileA] = useState<File | null>(null);
   const [fileB, setFileB] = useState<File | null>(null);
-  const [comparison, setComparison] = useState<any>(null);
+  const [comparison, setComparison] = useState<ComparisonResult[] | null>(null);
   const [isComparing, setIsComparing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,7 +111,7 @@ export default function ComparePage() {
             <h2 className="text-2xl font-bold text-slate-900 mb-6">Comparison Results</h2>
             
             <div className="space-y-4">
-              {comparison.map((item: any, index: number) => (
+              {comparison.map((item, index: number) => (
                 <div key={index} className="border border-slate-200 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold text-slate-900">{item.category}</h3>

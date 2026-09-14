@@ -68,23 +68,27 @@ export class AIManager implements AIProvider {
       try {
         return await primaryOperation();
       } catch (error) {
-        lastError = error as Error;
-        console.error(`AI operation attempt ${attempt + 1} failed:`, error);
+        const errorObj = error instanceof Error ? error : new Error(String(error));
+        lastError = errorObj;
+        // Don't log full error details to avoid exposing sensitive information
+        const errorMessage = errorObj.message;
+        console.error(`AI operation attempt ${attempt + 1} failed: ${errorMessage}`);
 
         // Check if this is a permanent error that should immediately trigger fallback
-        if (this.isPermanentError(error) && fallbackOperation) {
+        if (this.isPermanentError(errorObj) && fallbackOperation) {
           console.log('Permanent error detected, immediately switching to fallback provider...');
           try {
             return await fallbackOperation();
           } catch (fallbackError) {
-            console.error('Fallback provider also failed:', fallbackError);
-            lastError = fallbackError as Error;
+            const fallbackErrorMessage = fallbackError instanceof Error ? fallbackError.message : 'Unknown error';
+            console.error(`Fallback provider also failed: ${fallbackErrorMessage}`);
+            lastError = fallbackError instanceof Error ? fallbackError : new Error(String(fallbackError));
             break;
           }
         }
 
         // Check if this is a recoverable error that warrants retry
-        if (this.isRecoverableError(error) && attempt < this.maxRetries) {
+        if (this.isRecoverableError(errorObj) && attempt < this.maxRetries) {
           const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
           await this.sleep(delay);
           continue;
@@ -96,8 +100,9 @@ export class AIManager implements AIProvider {
           try {
             return await fallbackOperation();
           } catch (fallbackError) {
-            console.error('Fallback provider also failed:', fallbackError);
-            lastError = fallbackError as Error;
+            const fallbackErrorMessage = fallbackError instanceof Error ? fallbackError.message : 'Unknown error';
+            console.error(`Fallback provider also failed: ${fallbackErrorMessage}`);
+            lastError = fallbackError instanceof Error ? fallbackError : new Error(String(fallbackError));
           }
         }
       }
@@ -109,7 +114,7 @@ export class AIManager implements AIProvider {
   }
 
 
-  private isPermanentError(error: any): boolean {
+  private isPermanentError(error: Error): boolean {
     const errorMessage = error?.message?.toLowerCase() || '';
     const permanentPatterns = [
       '404',
@@ -124,7 +129,7 @@ export class AIManager implements AIProvider {
     return permanentPatterns.some(pattern => errorMessage.includes(pattern));
   }
 
-  private isRecoverableError(error: any): boolean {
+  private isRecoverableError(error: Error): boolean {
     const errorMessage = error?.message?.toLowerCase() || '';
     const recoverablePatterns = [
       'rate limit',

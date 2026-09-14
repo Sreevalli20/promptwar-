@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { Navigation } from '@/components/ui/navigation';
 import { DocumentUpload } from '@/components/ui/document-upload';
 import { MessageSquare, Send, AlertCircle, Loader2 } from 'lucide-react';
+import { QAResponse } from '@/lib/ai/provider';
 
 export default function AskPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState<any>(null);
+  const [answer, setAnswer] = useState<QAResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -140,7 +141,7 @@ export default function AskPage() {
                   <div className="mb-4">
                     <h4 className="text-sm font-medium text-slate-900 mb-2">Supporting Evidence</h4>
                     <ul className="space-y-2">
-                      {answer.supportingEvidence.map((evidence: string, index: number) => (
+                      {answer.supportingEvidence.map((evidence, index: number) => (
                         <li key={index} className="text-sm text-slate-600 bg-slate-50 p-3 rounded border border-slate-200">
                           {evidence}
                         </li>

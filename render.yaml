@@ -3,7 +3,7 @@
 
 services:
   - type: web
-    name: lexicuard
+    name: promptwar-
     runtime: node
     plan: free
     env: node
