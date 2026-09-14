@@ -1,26 +1,16 @@
 import mammoth from 'mammoth';
-// Use Node-compatible legacy build for server-side PDF parsing
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import pdfParse from 'pdf-parse';
 
 async function parsePDF(arrayBuffer: ArrayBuffer): Promise<{ text: string; numpages: number }> {
-  // Convert ArrayBuffer to Uint8Array for PDF.js compatibility
-  const data = new Uint8Array(arrayBuffer);
+  // Convert ArrayBuffer to Buffer for pdf-parse compatibility
+  const buffer = Buffer.from(arrayBuffer);
   
-  // Load PDF directly from Uint8Array - no worker needed for server-side
-  const loadingTask = pdfjsLib.getDocument({ data });
-  const pdf = await loadingTask.promise;
-  
-  let fullText = '';
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items.map((item: any) => item.str).join(' ');
-    fullText += pageText + '\n';
-  }
+  // Parse PDF using pdf-parse (Node.js compatible)
+  const data = await pdfParse(buffer);
   
   return {
-    text: fullText,
-    numpages: pdf.numPages,
+    text: data.text,
+    numpages: data.numpages,
   };
 }
 
@@ -83,7 +73,7 @@ export class DocumentParser {
       
       // Check for empty extraction (e.g., scanned/image-only PDF)
       if (!data.text || data.text.trim().length === 0) {
-        throw new Error('PDF contains no extractable text (may be scanned or image-only)');
+        throw new Error('This PDF appears to contain scanned images rather than selectable text. Please upload a text-based PDF or use OCR.');
       }
       
       // Enforce 100,000 character limit
@@ -119,15 +109,15 @@ export class DocumentParser {
       if (errorMessage.includes('empty')) {
         throw new Error('PDF file is empty or corrupted');
       }
-      if (errorMessage.includes('no extractable text')) {
-        throw new Error('PDF contains no extractable text (may be scanned or image-only)');
+      if (errorMessage.includes('scanned') || errorMessage.includes('no extractable text')) {
+        throw new Error('This PDF appears to contain scanned images rather than selectable text. Please upload a text-based PDF or use OCR.');
       }
       if (errorMessage.includes('Invalid PDF') || errorMessage.includes('corrupted')) {
         throw new Error('PDF file is corrupted or malformed');
       }
       
       // Generic error for other cases
-      throw new Error('Failed to parse PDF file');
+      throw new Error('Unable to extract readable text from this PDF. Please try a text-based PDF.');
     }
   }
 
@@ -182,21 +172,32 @@ export class DocumentParser {
       return { valid: false, error: 'File size exceeds 10MB limit' };
     }
     
-    // Validate file extension
+    // Validate file extension (primary check)
     const extension = file.name.split('.').pop()?.toLowerCase() || '';
     if (!supportedTypes.includes(extension)) {
       return { valid: false, error: `Unsupported file type: .${extension}. Supported types: PDF, DOCX, TXT, MD, CSV, JSON, HTML` };
     }
     
-    // Additional DOCX-specific validation
+    // Additional MIME type validation for PDF
+    if (extension === 'pdf') {
+      const validPdfMimeTypes = [
+        'application/pdf',
+        'application/x-pdf',
+        'application/octet-stream'
+      ];
+      if (file.type && !validPdfMimeTypes.includes(file.type)) {
+        return { valid: false, error: 'Invalid PDF file type' };
+      }
+    }
+    
+    // Additional MIME type validation for DOCX
     if (extension === 'docx') {
-      // Check MIME type if available
-      const validMimeTypes = [
+      const validDocxMimeTypes = [
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'application/msword',
         'application/octet-stream'
       ];
-      if (file.type && !validMimeTypes.includes(file.type)) {
+      if (file.type && !validDocxMimeTypes.includes(file.type)) {
         return { valid: false, error: 'Invalid DOCX file type' };
       }
     }

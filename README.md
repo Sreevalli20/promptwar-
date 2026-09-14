@@ -70,7 +70,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Document Processing Layer                    │
 │  - DocumentParser class                                          │
-│  - PDF parsing (pdfjs-dist)                                     │
+│  - PDF parsing (pdf-parse)                                       │
 │  - DOCX parsing (mammoth)                                        │
 │  - TXT/MD native support                                         │
 │  - File size validation (10MB limit)                             │
@@ -89,7 +89,7 @@
          ▼                                      ▼
 ┌──────────────────────┐           ┌──────────────────────────────┐
 │   Groq (Primary)     │           │  Hugging Face (Fallback)     │
-│   - openai/gpt-oss-120b │           │  - Llama-3.3-70B-Instruct     │
+│   - openai/gpt-oss-120b │           │  - meta-llama/Llama-3.3-70B-Instruct │
 │   - Fast inference   │           │  - Secondary provider         │
 │   - Rate limit       │           │  - Provider error handling     │
 │   handling           │           │  - Controlled fallback        │
@@ -152,7 +152,7 @@
 - **Styling:** Tailwind CSS 4 - Utility-first CSS with consistent design system
 - **Validation:** Zod 4 - Runtime type validation and schema enforcement
 - **Icons:** Lucide React - Consistent, accessible icon set
-- **Document Parsing:** pdfjs-dist (PDF), mammoth (DOCX) - Industry-standard libraries
+- **Document Parsing:** pdf-parse (PDF), mammoth (DOCX) - Industry-standard libraries
 
 ## Security (MEDIUM IMPACT - Optimized)
 
@@ -517,7 +517,7 @@ This implementation is deliberately optimized against the Hack2Skill evaluator r
 
 ## Supported File Formats
 
-- **PDF (.pdf)** - Using pdfjs-dist
+- **PDF (.pdf)** - Using pdf-parse
 - **Microsoft Word (.docx)** - Using mammoth
 - **Plain Text (.txt)** - Native support
 - **Markdown (.md)** - Native support
@@ -586,7 +586,7 @@ promptwar-/
 - **Language:** TypeScript 5
 - **Styling:** Tailwind CSS 4
 - **AI Provider:** Groq (primary), Hugging Face (fallback)
-- **Document Parsing:** pdfjs-dist (PDF), mammoth (DOCX)
+- **Document Parsing:** pdf-parse (PDF), mammoth (DOCX)
 - **Validation:** Zod 4
 - **Icons:** Lucide React
 - **Testing:** Vitest, React Testing Library

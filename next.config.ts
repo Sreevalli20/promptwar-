@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Server external packages for Node.js compatibility
+  serverExternalPackages: ['pdf-parse'],
+  
   // Security headers
   async headers() {
     return [
