@@ -11,7 +11,7 @@ import {
 } from './provider';
 import { PromptDefense } from '../security/prompt-defense';
 
-const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 export class GroqProvider implements AIProvider {

@@ -2,7 +2,7 @@ import { AIProvider, DocumentAnalysis, QAResponse, ComparisonResult } from './pr
 import { PromptDefense } from '../security/prompt-defense';
 
 const HF_API_URL = 'https://api-inference.huggingface.co/models';
-const MODEL = 'meta-llama/Llama-3.3-70B-Instruct';
+const MODEL = process.env.HF_MODEL || 'meta-llama/Llama-3.3-70B-Instruct';
 
 export class HuggingFaceProvider implements AIProvider {
   private apiKey: string;

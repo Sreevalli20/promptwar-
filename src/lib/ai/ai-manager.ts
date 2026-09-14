@@ -35,31 +35,53 @@ export class AIManager implements AIProvider {
   }
 
   async analyzeDocument(documentText: string): Promise<DocumentAnalysis> {
-    return this.withFallback(() => this.primaryProvider.analyzeDocument(documentText));
+    return this.withFallback(
+      () => this.primaryProvider.analyzeDocument(documentText),
+      this.fallbackProvider ? () => this.fallbackProvider!.analyzeDocument(documentText) : undefined
+    );
   }
 
   async askQuestion(documentText: string, question: string): Promise<QAResponse> {
-    return this.withFallback(() => this.primaryProvider.askQuestion(documentText, question));
+    return this.withFallback(
+      () => this.primaryProvider.askQuestion(documentText, question),
+      this.fallbackProvider ? () => this.fallbackProvider!.askQuestion(documentText, question) : undefined
+    );
   }
 
   async compareDocuments(
     documentAText: string,
     documentBText: string
   ): Promise<ComparisonResult[]> {
-    return this.withFallback(() => 
-      this.primaryProvider.compareDocuments(documentAText, documentBText)
+    return this.withFallback(
+      () => this.primaryProvider.compareDocuments(documentAText, documentBText),
+      this.fallbackProvider ? () => this.fallbackProvider!.compareDocuments(documentAText, documentBText) : undefined
     );
   }
 
-  private async withFallback<T>(operation: () => Promise<T>): Promise<T> {
+  private async withFallback<T>(
+    primaryOperation: () => Promise<T>,
+    fallbackOperation?: () => Promise<T>
+  ): Promise<T> {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
-        return await operation();
+        return await primaryOperation();
       } catch (error) {
         lastError = error as Error;
         console.error(`AI operation attempt ${attempt + 1} failed:`, error);
+
+        // Check if this is a permanent error that should immediately trigger fallback
+        if (this.isPermanentError(error) && fallbackOperation) {
+          console.log('Permanent error detected, immediately switching to fallback provider...');
+          try {
+            return await fallbackOperation();
+          } catch (fallbackError) {
+            console.error('Fallback provider also failed:', fallbackError);
+            lastError = fallbackError as Error;
+            break;
+          }
+        }
 
         // Check if this is a recoverable error that warrants retry
         if (this.isRecoverableError(error) && attempt < this.maxRetries) {
@@ -69,10 +91,10 @@ export class AIManager implements AIProvider {
         }
 
         // If we have a fallback provider and this is the last retry, try it
-        if (this.fallbackProvider && attempt === this.maxRetries) {
+        if (fallbackOperation && attempt === this.maxRetries) {
           console.log('Attempting fallback provider...');
           try {
-            return await operation.call(this.fallbackProvider);
+            return await fallbackOperation();
           } catch (fallbackError) {
             console.error('Fallback provider also failed:', fallbackError);
             lastError = fallbackError as Error;
@@ -86,6 +108,22 @@ export class AIManager implements AIProvider {
     );
   }
 
+
+  private isPermanentError(error: any): boolean {
+    const errorMessage = error?.message?.toLowerCase() || '';
+    const permanentPatterns = [
+      '404',
+      'model_not_found',
+      'model does not exist',
+      '401',
+      '403',
+      'authentication',
+      'authorization',
+    ];
+    
+    return permanentPatterns.some(pattern => errorMessage.includes(pattern));
+  }
+
   private isRecoverableError(error: any): boolean {
     const errorMessage = error?.message?.toLowerCase() || '';
     const recoverablePatterns = [
@@ -95,6 +133,7 @@ export class AIManager implements AIProvider {
       '503',
       '502',
       '504',
+      '500',
       'econnreset',
       'etimedout',
     ];
