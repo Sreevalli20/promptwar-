@@ -7,7 +7,6 @@ import { MessageSquare, Send, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function AskPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [documentText, setDocumentText] = useState<string>('');
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,28 +15,6 @@ export default function AskPage() {
   const handleUpload = async (file: File) => {
     setUploadedFile(file);
     setError(null);
-    
-    // For now, we'll analyze the document to get the text
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to parse document');
-      }
-
-      const data = await response.json();
-      // In a real implementation, we'd store the document text server-side
-      // For now, we'll use a placeholder - the actual text would come from the analysis
-      setDocumentText('Document uploaded and ready for questions');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
-    }
   };
 
   const handleAsk = async () => {
@@ -47,15 +24,13 @@ export default function AskPage() {
     setError(null);
 
     try {
+      const formData = new FormData();
+      formData.append('file', uploadedFile);
+      formData.append('question', question);
+
       const response = await fetch('/api/ask', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          question,
-          documentText, // In real implementation, this would be the actual document text
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -104,7 +79,6 @@ export default function AskPage() {
                 <button
                   onClick={() => {
                     setUploadedFile(null);
-                    setDocumentText('');
                     setAnswer(null);
                   }}
                   className="text-sm text-slate-600 hover:text-slate-900"

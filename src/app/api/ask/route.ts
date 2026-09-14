@@ -20,26 +20,58 @@ function containsPromptInjection(text: string): boolean {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const contentType = request.headers.get('content-type');
     
-    // Validate input
-    const validatedInput = QuestionSchema.parse(body);
-    
-    const { question, documentText, file } = validatedInput as any;
+    let question: string;
+    let documentText: string;
 
-    let actualDocumentText = documentText;
+    // Handle both JSON and FormData requests
+    if (contentType?.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      const file = formData.get('file') as File;
+      question = formData.get('question') as string;
 
-    // If file is provided, parse it to get the text
-    if (file && !documentText) {
+      if (!file || !question) {
+        return NextResponse.json(
+          { error: 'File and question are required' },
+          { status: 400 }
+        );
+      }
+
+      // Validate file
+      const validation = DocumentParser.validateFile(file);
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.error },
+          { status: 400 }
+        );
+      }
+
+      // Parse document
       const parseResult = await DocumentParser.parseFile(file);
-      actualDocumentText = parseResult.text;
-    }
+      documentText = parseResult.text;
 
-    if (!actualDocumentText) {
-      return NextResponse.json(
-        { error: 'Document text or file is required' },
-        { status: 400 }
-      );
+      // Check document size
+      if (documentText.length > 100000) {
+        return NextResponse.json(
+          { error: 'Document text exceeds processing limit (100,000 characters)' },
+          { status: 400 }
+        );
+      }
+    } else {
+      const body = await request.json();
+      
+      // Validate input
+      const validatedInput = QuestionSchema.parse(body);
+      question = validatedInput.question;
+      documentText = validatedInput.documentText || '';
+
+      if (!documentText) {
+        return NextResponse.json(
+          { error: 'Document text is required' },
+          { status: 400 }
+        );
+      }
     }
 
     // Check for prompt injection attempts
@@ -52,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     // Ask AI
     const aiManager = getAIManager();
-    const response = await aiManager.askQuestion(actualDocumentText, question);
+    const response = await aiManager.askQuestion(documentText, question);
 
     // Validate response
     const validatedResponse = QAResponseSchema.parse(response);
