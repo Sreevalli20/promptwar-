@@ -9,6 +9,7 @@ services:
     env: node
     buildCommand: npm run build
     startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
@@ -18,6 +19,8 @@ services:
         sync: false
       - key: GROQ_MODEL
         value: openai/gpt-oss-120b
+      - key: HF_MODEL
+        value: meta-llama/Llama-3.3-70B-Instruct
       - key: AI_PRIMARY_PROVIDER
         value: groq
       - key: AI_FALLBACK_PROVIDER
