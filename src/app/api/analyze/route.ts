@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DocumentParser } from '@/lib/parsers/document-parser';
 import { getAIManager } from '@/lib/ai/ai-manager';
 import { DocumentAnalysisSchema } from '@/lib/schemas/validation';
+import { PromptDefense } from '@/lib/security/prompt-defense';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,9 +36,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Sanitize document text for prompt injection defense
+    const { safeText: sanitizedText, wasModified } = PromptDefense.sanitizeDocumentText(parseResult.text);
+    if (wasModified) {
+      console.warn('Document text contained potential injection patterns and was sanitized');
+    }
+
     // Analyze with AI
     const aiManager = getAIManager();
-    const analysis = await aiManager.analyzeDocument(parseResult.text);
+    const analysis = await aiManager.analyzeDocument(sanitizedText);
 
     // Validate response
     const validatedAnalysis = DocumentAnalysisSchema.parse(analysis);

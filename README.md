@@ -173,6 +173,9 @@
 - **Pattern Detection:** Regex-based detection of common prompt injection patterns ("ignore previous instructions", "reveal system prompt", etc.)
 - **Content Sanitization:** Document text treated as data, not instructions
 - **System Prompt Protection:** Explicit instructions to AI providers to not reveal system prompts
+- **Security Module:** Dedicated `PromptDefense` class for centralized security logic
+- **Sanitization:** Automatic removal of potential injection patterns from document content
+- **Validation:** Question validation to detect malicious input patterns
 
 ### Output Validation
 - **Structured Responses:** All AI outputs validated against Zod schemas before rendering
@@ -185,6 +188,8 @@
 - **Generic Error Messages:** User-facing errors are informative but not revealing
 - **No Secret Logging:** API keys and sensitive data never logged or printed
 - **Safe HTTP Headers:** Security headers configured in Next.js (X-Frame-Options, X-Content-Type-Options, etc.)
+- **Security Headers Module:** Dedicated `SecurityHeaders` class for consistent header configuration
+- **Content Security Policy:** CSP headers to prevent XSS attacks
 
 ### API Security
 - **Request Size Limits:** Both file size and text content limits prevent abuse
@@ -273,6 +278,8 @@
 
 ## Deployment
 
+LexiGuard is designed for seamless deployment on both Vercel and Render platforms using the same codebase. The application uses standard Next.js patterns that work with both serverless (Vercel) and containerized (Render) deployments.
+
 ### Vercel Deployment (Recommended)
 1. **Push code to GitHub repository**
 2. **Import repository in Vercel**
@@ -283,6 +290,21 @@
    - `AI_PRIMARY_PROVIDER`: Primary provider (default: `groq`)
    - `AI_FALLBACK_PROVIDER`: Fallback provider (default: `huggingface`)
 4. **Deploy** - Vercel will automatically build and deploy
+
+### Render Deployment
+1. **Push code to GitHub repository**
+2. **Create a new Web Service in Render**
+3. **Connect your GitHub repository**
+4. **Render will automatically detect the `render.yaml` configuration**
+5. **Configure environment variables in Render dashboard:**
+   - `GROQ_API_KEY`: Your Groq API key (required)
+   - `HF_TOKEN`: Your Hugging Face token (optional, for fallback)
+   - `GROQ_MODEL`: Model name (default: `llama-3.3-70b-versatile`)
+   - `AI_PRIMARY_PROVIDER`: Primary provider (default: `groq`)
+   - `AI_FALLBACK_PROVIDER`: Fallback provider (default: `huggingface`)
+6. **Deploy** - Render will build and start the Node.js service
+
+**Note:** The `render.yaml` file provides automatic configuration for Render deployment, including build commands, start commands, and environment variable templates.
 
 ### Local Development
 ```bash
@@ -414,6 +436,31 @@ This implementation is deliberately optimized against the Hack2Skill evaluator r
 - **Loading States:** Clear step-by-step loading indicators
 - **Error States:** Helpful error messages with recovery paths
 
+## Key Implementation Details
+
+### Security Implementation
+- **Server-Side Only:** All API keys accessed only in server-side API routes
+- **No Client Secrets:** No `NEXT_PUBLIC_` environment variables used
+- **Prompt Defense:** Dedicated security module with injection detection and sanitization
+- **Input Validation:** Comprehensive validation for file types, sizes, and content
+- **Output Validation:** Zod schema validation for all AI responses
+- **Error Handling:** Safe error messages without exposing internal details
+
+### Efficiency Implementation
+- **Bounded Input:** 10MB file limit, 100,000 character text limit
+- **Controlled Retries:** Maximum 2 retry attempts with exponential backoff
+- **Provider Fallback:** Automatic switch to Hugging Face when Groq fails
+- **Reusable Analysis:** Document analysis cached for session duration
+- **Minimal Dependencies:** Only essential packages installed
+- **Serverless Design:** No local file dependencies, suitable for both platforms
+
+### Testing Implementation
+- **Vitest Framework:** Modern test runner for TypeScript
+- **Security Tests:** Prompt injection detection, input validation, output validation
+- **Schema Tests:** Comprehensive Zod schema validation tests
+- **Parser Tests:** File validation, type detection, size limits
+- **Integration Ready:** Test structure supports future API route testing
+
 ## Demo Instructions
 
 ### Competition Demo Flow (Under 4 Minutes)
@@ -513,6 +560,9 @@ promptwar-/
 │       ├── prompts/                  # System prompts (directory exists)
 │       ├── schemas/
 │       │   └── validation.ts         # Zod validation schemas
+│       ├── security/
+│       │   ├── prompt-defense.ts     # Prompt injection defense module
+│       │   └── headers.ts            # Security headers configuration
 │       └── utils.ts                  # Utility functions
 ├── tests/
 │   ├── setup.ts                     # Test setup and mocks

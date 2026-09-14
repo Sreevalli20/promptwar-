@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "env": {
+    "GROQ_API_KEY": "@groq-api-key",
+    "HF_TOKEN": "@hf-token",
+    "GROQ_MODEL": "llama-3.3-70b-versatile",
+    "AI_PRIMARY_PROVIDER": "groq",
+    "AI_FALLBACK_PROVIDER": "huggingface"
+  }
+}

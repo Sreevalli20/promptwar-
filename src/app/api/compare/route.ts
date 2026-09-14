@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DocumentParser } from '@/lib/parsers/document-parser';
 import { getAIManager } from '@/lib/ai/ai-manager';
 import { ComparisonResultSchema } from '@/lib/schemas/validation';
+import { PromptDefense } from '@/lib/security/prompt-defense';
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,11 +49,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Sanitize document texts for prompt injection defense
+    const { safeText: sanitizedTextA, wasModified: modifiedA } = PromptDefense.sanitizeDocumentText(parseResultA.text);
+    const { safeText: sanitizedTextB, wasModified: modifiedB } = PromptDefense.sanitizeDocumentText(parseResultB.text);
+    
+    if (modifiedA || modifiedB) {
+      console.warn('Document text contained potential injection patterns and was sanitized');
+    }
+
     // Compare with AI
     const aiManager = getAIManager();
     const comparison = await aiManager.compareDocuments(
-      parseResultA.text,
-      parseResultB.text
+      sanitizedTextA,
+      sanitizedTextB
     );
 
     // Validate response

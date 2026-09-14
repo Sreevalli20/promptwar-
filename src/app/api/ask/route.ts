@@ -2,21 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAIManager } from '@/lib/ai/ai-manager';
 import { DocumentParser } from '@/lib/parsers/document-parser';
 import { QAResponseSchema, QuestionSchema } from '@/lib/schemas/validation';
-
-function containsPromptInjection(text: string): boolean {
-  const injectionPatterns = [
-    /ignore previous instructions/i,
-    /ignore all instructions/i,
-    /reveal your system prompt/i,
-    /show your instructions/i,
-    /print your prompt/i,
-    /override your instructions/i,
-    /new instructions:/i,
-    /system prompt:/i,
-  ];
-  
-  return injectionPatterns.some(pattern => pattern.test(text));
-}
+import { PromptDefense } from '@/lib/security/prompt-defense';
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,16 +61,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for prompt injection attempts
-    if (containsPromptInjection(question)) {
+    const questionValidation = PromptDefense.validateQuestion(question);
+    if (!questionValidation.valid) {
       return NextResponse.json(
-        { error: 'Invalid question format' },
+        { error: questionValidation.reason || 'Invalid question format' },
         { status: 400 }
       );
     }
 
+    // Sanitize document text
+    const { safeText: sanitizedDocumentText, wasModified } = PromptDefense.sanitizeDocumentText(documentText);
+    if (wasModified) {
+      console.warn('Document text contained potential injection patterns and was sanitized');
+    }
+
     // Ask AI
     const aiManager = getAIManager();
-    const response = await aiManager.askQuestion(documentText, question);
+    const response = await aiManager.askQuestion(sanitizedDocumentText, question);
 
     // Validate response
     const validatedResponse = QAResponseSchema.parse(response);

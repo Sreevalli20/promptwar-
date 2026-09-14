@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { DocumentParser } from '../src/lib/parsers/document-parser';
 
 describe('DocumentParser Logic', () => {
   describe('File size validation', () => {
@@ -12,6 +13,19 @@ describe('DocumentParser Logic', () => {
       const maxSize = 10 * 1024 * 1024; // 10MB
       const largeFile = { size: 11 * 1024 * 1024, name: 'large.pdf' }; // 11MB
       expect(largeFile.size).toBeGreaterThan(maxSize);
+    });
+
+    it('should validate file using DocumentParser', () => {
+      const validFile = { size: 5 * 1024 * 1024, name: 'test.pdf' };
+      const validation = DocumentParser.validateFile(validFile as File);
+      expect(validation.valid).toBe(true);
+    });
+
+    it('should reject oversized files using DocumentParser', () => {
+      const largeFile = { size: 11 * 1024 * 1024, name: 'large.pdf' };
+      const validation = DocumentParser.validateFile(largeFile as File);
+      expect(validation.valid).toBe(false);
+      expect(validation.error).toContain('10MB');
     });
   });
 
@@ -55,6 +69,13 @@ describe('DocumentParser Logic', () => {
       const fileName = 'document.PDF';
       const extension = fileName.split('.').pop()?.toLowerCase();
       expect(extension).toBe('pdf');
+    });
+
+    it('should reject unsupported file types using DocumentParser', () => {
+      const invalidFile = { size: 1024, name: 'document.exe' };
+      const validation = DocumentParser.validateFile(invalidFile as File);
+      expect(validation.valid).toBe(false);
+      expect(validation.error).toContain('Unsupported file type');
     });
   });
 
