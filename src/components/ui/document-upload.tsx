@@ -9,14 +9,14 @@ interface DocumentUploadProps {
   accept?: string;
 }
 
-export function DocumentUpload({ onUpload, disabled = false, accept = '.pdf,.docx,.txt,.md' }: DocumentUploadProps) {
+export function DocumentUpload({ onUpload, disabled = false, accept = '.pdf,.docx,.txt,.md,.csv,.json,.html,.htm' }: DocumentUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const validateFile = (file: File): { valid: boolean; error?: string } => {
     const maxSize = 10 * 1024 * 1024; // 10MB
-    const supportedTypes = ['pdf', 'docx', 'txt', 'md'];
+    const supportedTypes = ['pdf', 'docx', 'txt', 'md', 'csv', 'json', 'html', 'htm'];
     
     if (file.size > maxSize) {
       return { valid: false, error: 'File size exceeds 10MB limit' };
@@ -24,7 +24,7 @@ export function DocumentUpload({ onUpload, disabled = false, accept = '.pdf,.doc
     
     const extension = file.name.split('.').pop()?.toLowerCase() || '';
     if (!supportedTypes.includes(extension)) {
-      return { valid: false, error: `Unsupported file type: .${extension}. Supported types: PDF, DOCX, TXT, MD` };
+      return { valid: false, error: `Unsupported file type: .${extension}. Supported types: PDF, DOCX, TXT, MD, CSV, JSON, HTML, HTM` };
     }
     
     return { valid: true };
@@ -122,7 +122,7 @@ export function DocumentUpload({ onUpload, disabled = false, accept = '.pdf,.doc
                 Drag and drop, or click to browse
               </p>
               <p className="text-xs text-slate-400">
-                Supported formats: PDF, DOCX, TXT, MD (max 10MB)
+                Supported formats: PDF, DOCX, TXT, MD, CSV, JSON, HTML, HTM (max 10MB)
               </p>
             </label>
           </>
