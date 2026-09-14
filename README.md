@@ -89,7 +89,7 @@
          ▼                                      ▼
 ┌──────────────────────┐           ┌──────────────────────────────┐
 │   Groq (Primary)     │           │  Hugging Face (Fallback)     │
-│   - llama-3.3-70b    │           │  - Llama-3.3-70B-Instruct     │
+│   - openai/gpt-oss-120b │           │  - Llama-3.3-70B-Instruct     │
 │   - Fast inference   │           │  - Secondary provider         │
 │   - Rate limit       │           │  - Provider error handling     │
 │   handling           │           │  - Controlled fallback        │
@@ -101,7 +101,7 @@
 **Mention the Gen AI services utilized in the submission, and where did you utilize it?**
 
 ### Groq Cloud API (Primary GenAI Provider)
-**Model:** `llama-3.3-70b-versatile` (configurable via `GROQ_MODEL` environment variable)
+**Model:** `openai/gpt-oss-120b` (configurable via `GROQ_MODEL` environment variable)
 
 **Where Used:**
 - **Document Summarization:** Executive summaries and plain-English explanations of complex legal language
@@ -286,7 +286,7 @@ LexiGuard is designed for seamless deployment on both Vercel and Render platform
 3. **Configure environment variables in Vercel dashboard:**
    - `GROQ_API_KEY`: Your Groq API key (required)
    - `HF_TOKEN`: Your Hugging Face token (optional, for fallback)
-   - `GROQ_MODEL`: Model name (default: `llama-3.3-70b-versatile`)
+   - `GROQ_MODEL`: Model name (default: `openai/gpt-oss-120b`)
    - `AI_PRIMARY_PROVIDER`: Primary provider (default: `groq`)
    - `AI_FALLBACK_PROVIDER`: Fallback provider (default: `huggingface`)
 4. **Deploy** - Vercel will automatically build and deploy
@@ -299,7 +299,7 @@ LexiGuard is designed for seamless deployment on both Vercel and Render platform
 5. **Configure environment variables in Render dashboard:**
    - `GROQ_API_KEY`: Your Groq API key (required)
    - `HF_TOKEN`: Your Hugging Face token (optional, for fallback)
-   - `GROQ_MODEL`: Model name (default: `llama-3.3-70b-versatile`)
+   - `GROQ_MODEL`: Model name (default: `openai/gpt-oss-120b`)
    - `AI_PRIMARY_PROVIDER`: Primary provider (default: `groq`)
    - `AI_FALLBACK_PROVIDER`: Fallback provider (default: `huggingface`)
 6. **Deploy** - Render will build and start the Node.js service
@@ -351,7 +351,7 @@ The following environment variables must be configured in `.env` (local) or Verc
 ```env
 GROQ_API_KEY=                    # Required: Your Groq API key
 HF_TOKEN=                        # Optional: Your Hugging Face token (for fallback)
-GROQ_MODEL=llama-3.3-70b-versatile  # Optional: Groq model name
+GROQ_MODEL=openai/gpt-oss-120b  # Optional: Groq model name
 AI_PRIMARY_PROVIDER=groq         # Optional: Primary AI provider
 AI_FALLBACK_PROVIDER=huggingface # Optional: Fallback AI provider
 ```

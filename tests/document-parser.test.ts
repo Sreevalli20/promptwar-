@@ -252,9 +252,9 @@ describe('DocumentParser Logic', () => {
   });
 
   describe('PDF Buffer/Uint8Array parsing', () => {
-    it('should convert ArrayBuffer to Buffer and pass to pdfjs-dist legacy build', async () => {
+    it('should convert ArrayBuffer to Uint8Array and pass to pdfjs-dist legacy build', async () => {
       const mockArrayBuffer = new ArrayBuffer(100);
-      const mockBuffer = Buffer.from(mockArrayBuffer);
+      const mockData = new Uint8Array(mockArrayBuffer);
       
       const mockPdf = {
         numPages: 2,
@@ -282,7 +282,7 @@ describe('DocumentParser Logic', () => {
 
       const result = await DocumentParser.parseFile(mockFile);
 
-      expect(pdfjsLib.getDocument).toHaveBeenCalledWith({ data: mockBuffer });
+      expect(pdfjsLib.getDocument).toHaveBeenCalledWith({ data: mockData });
       expect(result.text).toContain('Page 1 text');
       expect(result.metadata?.fileType).toBe('pdf');
       expect(result.metadata?.pageCount).toBe(2);
@@ -290,7 +290,7 @@ describe('DocumentParser Logic', () => {
 
     it('should handle multi-page PDF extraction', async () => {
       const mockArrayBuffer = new ArrayBuffer(200);
-      const mockBuffer = Buffer.from(mockArrayBuffer);
+      const mockData = new Uint8Array(mockArrayBuffer);
       
       const mockPdf = {
         numPages: 3,
@@ -350,7 +350,7 @@ describe('DocumentParser Logic', () => {
 
     it('should handle PDFs with no extractable text (scanned/image-only)', async () => {
       const mockArrayBuffer = new ArrayBuffer(100);
-      const mockBuffer = Buffer.from(mockArrayBuffer);
+      const mockData = new Uint8Array(mockArrayBuffer);
       
       const mockPdf = {
         numPages: 1,
@@ -408,7 +408,7 @@ describe('DocumentParser Logic', () => {
 
     it('should enforce 100,000 character limit', async () => {
       const mockArrayBuffer = new ArrayBuffer(100);
-      const mockBuffer = Buffer.from(mockArrayBuffer);
+      const mockData = new Uint8Array(mockArrayBuffer);
       
       const mockPdf = {
         numPages: 1,
@@ -458,7 +458,7 @@ describe('DocumentParser Logic', () => {
 
     it('should not configure browser worker for server-side parsing', async () => {
       const mockArrayBuffer = new ArrayBuffer(100);
-      const mockBuffer = Buffer.from(mockArrayBuffer);
+      const mockData = new Uint8Array(mockArrayBuffer);
       
       const mockPdf = {
         numPages: 1,
@@ -486,8 +486,80 @@ describe('DocumentParser Logic', () => {
       await DocumentParser.parseFile(mockFile);
 
       // Verify pdfjs-dist legacy build was called directly without worker configuration
-      expect(pdfjsLib.getDocument).toHaveBeenCalledWith({ data: mockBuffer });
+      expect(pdfjsLib.getDocument).toHaveBeenCalledWith({ data: mockData });
       expect(pdfjsLib.getDocument).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Additional text-based formats (CSV, JSON, HTML)', () => {
+    it('should parse CSV files', async () => {
+      const mockFile = {
+        name: 'data.csv',
+        size: 100,
+        text: async () => 'name,age\nJohn,30\nJane,25',
+      } as unknown as File;
+
+      const result = await DocumentParser.parseFile(mockFile);
+
+      expect(result.text).toContain('name,age');
+      expect(result.metadata?.fileType).toBe('csv');
+    });
+
+    it('should parse JSON files', async () => {
+      const mockFile = {
+        name: 'data.json',
+        size: 100,
+        text: async () => '{"name": "John", "age": 30}',
+      } as unknown as File;
+
+      const result = await DocumentParser.parseFile(mockFile);
+
+      expect(result.text).toContain('John');
+      expect(result.metadata?.fileType).toBe('json');
+    });
+
+    it('should parse HTML files', async () => {
+      const mockFile = {
+        name: 'page.html',
+        size: 100,
+        text: async () => '<html><body><h1>Test</h1></body></html>',
+      } as unknown as File;
+
+      const result = await DocumentParser.parseFile(mockFile);
+
+      expect(result.text).toContain('Test');
+      expect(result.metadata?.fileType).toBe('html');
+    });
+
+    it('should parse HTM files as HTML', async () => {
+      const mockFile = {
+        name: 'page.htm',
+        size: 100,
+        text: async () => '<html><body><h1>Test</h1></body></html>',
+      } as unknown as File;
+
+      const result = await DocumentParser.parseFile(mockFile);
+
+      expect(result.text).toContain('Test');
+      expect(result.metadata?.fileType).toBe('html');
+    });
+
+    it('should validate CSV files', () => {
+      const csvFile = { size: 100, name: 'data.csv' };
+      const validation = DocumentParser.validateFile(csvFile as File);
+      expect(validation.valid).toBe(true);
+    });
+
+    it('should validate JSON files', () => {
+      const jsonFile = { size: 100, name: 'data.json' };
+      const validation = DocumentParser.validateFile(jsonFile as File);
+      expect(validation.valid).toBe(true);
+    });
+
+    it('should validate HTML files', () => {
+      const htmlFile = { size: 100, name: 'page.html' };
+      const validation = DocumentParser.validateFile(htmlFile as File);
+      expect(validation.valid).toBe(true);
     });
   });
 });

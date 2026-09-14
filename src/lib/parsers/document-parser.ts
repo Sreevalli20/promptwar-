@@ -3,11 +3,11 @@ import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 async function parsePDF(arrayBuffer: ArrayBuffer): Promise<{ text: string; numpages: number }> {
-  // Convert ArrayBuffer to Buffer for Node compatibility
-  const buffer = Buffer.from(arrayBuffer);
+  // Convert ArrayBuffer to Uint8Array for PDF.js compatibility
+  const data = new Uint8Array(arrayBuffer);
   
-  // Load PDF directly from buffer - no worker needed for server-side
-  const loadingTask = pdfjsLib.getDocument({ data: buffer });
+  // Load PDF directly from Uint8Array - no worker needed for server-side
+  const loadingTask = pdfjsLib.getDocument({ data });
   const pdf = await loadingTask.promise;
   
   let fullText = '';
@@ -44,9 +44,13 @@ export class DocumentParser {
         return this.parseDOCX(file);
       case 'txt':
       case 'md':
+      case 'csv':
+      case 'json':
+      case 'html':
+      case 'htm':
         return this.parseText(file);
       default:
-        throw new Error(`Unsupported file type: ${fileType}`);
+        throw new Error(`Unsupported file type: ${fileType}. Supported types: PDF, DOCX, TXT, MD, CSV, JSON, HTML`);
     }
   }
 
@@ -57,6 +61,10 @@ export class DocumentParser {
       'docx': 'docx',
       'txt': 'txt',
       'md': 'md',
+      'csv': 'csv',
+      'json': 'json',
+      'html': 'html',
+      'htm': 'html',
     };
     
     return supportedTypes[extension as keyof typeof supportedTypes] || 'unknown';
@@ -145,12 +153,13 @@ export class DocumentParser {
   private static async parseText(file: File): Promise<ParseResult> {
     try {
       const text = await file.text();
+      const fileType = this.getFileType(file.name);
       
       return {
         text,
         metadata: {
           fileName: file.name,
-          fileType: file.name.endsWith('.md') ? 'md' : 'txt',
+          fileType,
         },
       };
     } catch (error) {
@@ -161,7 +170,7 @@ export class DocumentParser {
 
   static validateFile(file: File): { valid: boolean; error?: string } {
     const maxSize = 10 * 1024 * 1024; // 10MB
-    const supportedTypes = ['pdf', 'docx', 'txt', 'md'];
+    const supportedTypes = ['pdf', 'docx', 'txt', 'md', 'csv', 'json', 'html', 'htm'];
     
     // Reject empty files
     if (file.size === 0) {
@@ -176,7 +185,7 @@ export class DocumentParser {
     // Validate file extension
     const extension = file.name.split('.').pop()?.toLowerCase() || '';
     if (!supportedTypes.includes(extension)) {
-      return { valid: false, error: `Unsupported file type: .${extension}. Supported types: PDF, DOCX, TXT, MD` };
+      return { valid: false, error: `Unsupported file type: .${extension}. Supported types: PDF, DOCX, TXT, MD, CSV, JSON, HTML` };
     }
     
     // Additional DOCX-specific validation

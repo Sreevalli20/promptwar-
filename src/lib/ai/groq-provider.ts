@@ -14,6 +14,16 @@ import { PromptDefense } from '../security/prompt-defense';
 const MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
+// Validate model configuration - reject deprecated models
+if (MODEL.includes('llama-3.3-70b-versatile')) {
+  throw new Error(
+    'Deprecated model "llama-3.3-70b-versatile" detected. ' +
+    'This model was deprecated on August 16, 2026. ' +
+    'Please use "openai/gpt-oss-120b" instead. ' +
+    'Set GROQ_MODEL=openai/gpt-oss-120b in your environment configuration.'
+  );
+}
+
 export class GroqProvider implements AIProvider {
   async analyzeDocument(documentText: string): Promise<DocumentAnalysis> {
     const prompt = this.buildAnalysisPrompt(documentText);
