@@ -201,7 +201,7 @@
 
 ### Performance Optimization
 - **Bounded Context:** Document text limited to 100,000 characters to prevent excessive API calls
-- **Single Analysis Request:** One AI call per document for analysis, results reused for Q&A
+- **Stateless Processing:** Each API request processes documents independently without cross-request caching
 - **Controlled Fallback:** Maximum 2 retry attempts with exponential backoff before switching providers
 - **Single-Request Processing:** Each API call processes documents independently without cross-request caching
 - **Lazy Loading:** Components and routes loaded on demand using Next.js dynamic imports
@@ -404,7 +404,7 @@ This implementation is deliberately optimized against the Hack2Skill evaluator r
 
 #### Efficiency ✅
 - **Bounded Context:** Document text limited to prevent excessive API usage
-- **Single Analysis:** One AI call per document, results reused for Q&A
+- **Stateless Processing:** Each API request processes documents independently without cross-request caching
 - **Controlled Fallback:** Maximum 2 retries with exponential backoff
 - **Stateless Architecture:** No session caching, suitable for serverless deployment
 - **Minimal Dependencies:** Only essential packages, no bloat
