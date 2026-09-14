@@ -203,7 +203,7 @@
 - **Bounded Context:** Document text limited to 100,000 characters to prevent excessive API calls
 - **Single Analysis Request:** One AI call per document for analysis, results reused for Q&A
 - **Controlled Fallback:** Maximum 2 retry attempts with exponential backoff before switching providers
-- **No Duplicate Processing:** Document analysis results cached for session duration
+- **Single-Request Processing:** Each API call processes documents independently without cross-request caching
 - **Lazy Loading:** Components and routes loaded on demand using Next.js dynamic imports
 - **Minimal Dependencies:** Only essential packages installed, no unnecessary bloat
 
@@ -450,7 +450,7 @@ This implementation is deliberately optimized against the Hack2Skill evaluator r
 - **Bounded Input:** 10MB file limit, 100,000 character text limit
 - **Controlled Retries:** Maximum 2 retry attempts with exponential backoff
 - **Provider Fallback:** Automatic switch to Hugging Face when Groq fails
-- **Reusable Analysis:** Document analysis cached for session duration
+- **Single-Request Processing:** Each API call processes documents independently
 - **Minimal Dependencies:** Only essential packages installed
 - **Serverless Design:** No local file dependencies, suitable for both platforms
 
