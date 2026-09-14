@@ -84,7 +84,8 @@ export class DocumentParser {
   private static async parseDOCX(file: File): Promise<ParseResult> {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({ arrayBuffer });
+      const buffer = Buffer.from(arrayBuffer);
+      const result = await mammoth.extractRawText({ buffer });
       
       return {
         text: result.value,
@@ -120,13 +121,33 @@ export class DocumentParser {
     const maxSize = 10 * 1024 * 1024; // 10MB
     const supportedTypes = ['pdf', 'docx', 'txt', 'md'];
     
+    // Reject empty files
+    if (file.size === 0) {
+      return { valid: false, error: 'File is empty' };
+    }
+    
+    // Check file size limit
     if (file.size > maxSize) {
       return { valid: false, error: 'File size exceeds 10MB limit' };
     }
     
+    // Validate file extension
     const extension = file.name.split('.').pop()?.toLowerCase() || '';
     if (!supportedTypes.includes(extension)) {
       return { valid: false, error: `Unsupported file type: .${extension}. Supported types: PDF, DOCX, TXT, MD` };
+    }
+    
+    // Additional DOCX-specific validation
+    if (extension === 'docx') {
+      // Check MIME type if available
+      const validMimeTypes = [
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword',
+        'application/octet-stream'
+      ];
+      if (file.type && !validMimeTypes.includes(file.type)) {
+        return { valid: false, error: 'Invalid DOCX file type' };
+      }
     }
     
     return { valid: true };
