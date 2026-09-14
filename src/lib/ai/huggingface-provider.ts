@@ -3,6 +3,7 @@ import { PromptDefense } from '../security/prompt-defense';
 
 const HF_API_URL = 'https://api-inference.huggingface.co/models';
 const MODEL = process.env.HF_MODEL || 'meta-llama/Llama-3.3-70B-Instruct';
+const API_TIMEOUT = 60000; // 60 seconds
 
 export class HuggingFaceProvider implements AIProvider {
   private apiKey: string;
@@ -36,6 +37,9 @@ export class HuggingFaceProvider implements AIProvider {
   }
 
   private async callHuggingFace(prompt: string): Promise<string> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
     try {
       const response = await fetch(`${HF_API_URL}/${MODEL}`, {
         method: 'POST',
@@ -51,7 +55,10 @@ export class HuggingFaceProvider implements AIProvider {
             return_full_text: false,
           },
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -68,7 +75,11 @@ export class HuggingFaceProvider implements AIProvider {
         throw new Error('Unexpected response format from Hugging Face');
       }
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Hugging Face API call failed:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Hugging Face API request timeout');
+      }
       throw error;
     }
   }

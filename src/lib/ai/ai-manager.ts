@@ -136,6 +136,7 @@ export class AIManager implements AIProvider {
       '500',
       'econnreset',
       'etimedout',
+      'request timeout',
     ];
     
     return recoverablePatterns.some(pattern => errorMessage.includes(pattern));

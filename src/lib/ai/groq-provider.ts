@@ -13,6 +13,7 @@ import { PromptDefense } from '../security/prompt-defense';
 
 const MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const API_TIMEOUT = 60000; // 60 seconds
 
 // Validate model configuration - reject deprecated models
 if (MODEL.includes('llama-3.3-70b-versatile')) {
@@ -52,6 +53,9 @@ export class GroqProvider implements AIProvider {
       throw new Error('GROQ_API_KEY environment variable is required');
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -70,7 +74,10 @@ export class GroqProvider implements AIProvider {
           temperature: 0.3,
           max_tokens: 4000,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -80,7 +87,11 @@ export class GroqProvider implements AIProvider {
       const data = await response.json();
       return data.choices[0]?.message?.content || '';
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Groq API call failed:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Groq API request timeout');
+      }
       throw error;
     }
   }
