@@ -14,4 +14,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // Use test-specific tsconfig for proper Node types
+  tsconfig: './tsconfig.test.json',
 });

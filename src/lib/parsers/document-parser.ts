@@ -1,13 +1,13 @@
 import mammoth from 'mammoth';
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Set up PDF.js worker
-if (typeof window === 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-}
+// Use Node-compatible legacy build for server-side PDF parsing
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 async function parsePDF(arrayBuffer: ArrayBuffer): Promise<{ text: string; numpages: number }> {
-  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+  // Convert ArrayBuffer to Buffer for Node compatibility
+  const buffer = Buffer.from(arrayBuffer);
+  
+  // Load PDF directly from buffer - no worker needed for server-side
+  const loadingTask = pdfjsLib.getDocument({ data: buffer });
   const pdf = await loadingTask.promise;
   
   let fullText = '';
@@ -65,7 +65,31 @@ export class DocumentParser {
   private static async parsePDF(file: File): Promise<ParseResult> {
     try {
       const arrayBuffer = await file.arrayBuffer();
+      
+      // Check for empty file
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('PDF file is empty');
+      }
+      
       const data = await parsePDF(arrayBuffer);
+      
+      // Check for empty extraction (e.g., scanned/image-only PDF)
+      if (!data.text || data.text.trim().length === 0) {
+        throw new Error('PDF contains no extractable text (may be scanned or image-only)');
+      }
+      
+      // Enforce 100,000 character limit
+      const maxLength = 100000;
+      if (data.text.length > maxLength) {
+        return {
+          text: data.text.substring(0, maxLength),
+          metadata: {
+            fileName: file.name,
+            fileType: 'pdf',
+            pageCount: data.numpages,
+          },
+        };
+      }
       
       return {
         text: data.text,
@@ -77,6 +101,24 @@ export class DocumentParser {
       };
     } catch (error) {
       console.error('PDF parsing failed:', error);
+      
+      // Convert specific errors to safe application messages
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('password') || errorMessage.includes('encrypted')) {
+        throw new Error('PDF is password-protected and cannot be parsed');
+      }
+      if (errorMessage.includes('empty')) {
+        throw new Error('PDF file is empty or corrupted');
+      }
+      if (errorMessage.includes('no extractable text')) {
+        throw new Error('PDF contains no extractable text (may be scanned or image-only)');
+      }
+      if (errorMessage.includes('Invalid PDF') || errorMessage.includes('corrupted')) {
+        throw new Error('PDF file is corrupted or malformed');
+      }
+      
+      // Generic error for other cases
       throw new Error('Failed to parse PDF file');
     }
   }

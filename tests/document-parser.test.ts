@@ -8,14 +8,10 @@ vi.mock('mammoth', () => ({
   },
 }));
 
-// Mock pdfjs-dist module
-vi.mock('pdfjs-dist', () => {
+// Mock pdfjs-dist legacy build for Node-compatible server-side parsing
+vi.mock('pdfjs-dist/legacy/build/pdf.mjs', () => {
   const mockPdfjs = {
     getDocument: vi.fn(),
-    version: '3.11.174',
-    GlobalWorkerOptions: {
-      workerSrc: '',
-    },
   };
   return {
     default: mockPdfjs,
@@ -24,6 +20,7 @@ vi.mock('pdfjs-dist', () => {
 });
 
 import mammoth from 'mammoth';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 describe('DocumentParser Logic', () => {
   beforeEach(() => {
@@ -251,6 +248,246 @@ describe('DocumentParser Logic', () => {
       expect(callArgs).toHaveProperty('buffer');
       expect(callArgs).not.toHaveProperty('arrayBuffer');
       expect(callArgs.buffer).toBeInstanceOf(Buffer);
+    });
+  });
+
+  describe('PDF Buffer/Uint8Array parsing', () => {
+    it('should convert ArrayBuffer to Buffer and pass to pdfjs-dist legacy build', async () => {
+      const mockArrayBuffer = new ArrayBuffer(100);
+      const mockBuffer = Buffer.from(mockArrayBuffer);
+      
+      const mockPdf = {
+        numPages: 2,
+        getPage: vi.fn(),
+      };
+      
+      const mockPage = {
+        getTextContent: vi.fn(),
+      };
+      
+      const mockFile = {
+        name: 'test.pdf',
+        size: 100,
+        arrayBuffer: async () => mockArrayBuffer,
+      } as unknown as File;
+
+      (pdfjsLib.getDocument as any).mockReturnValue({
+        promise: Promise.resolve(mockPdf),
+      });
+
+      mockPdf.getPage.mockResolvedValue(mockPage);
+      mockPage.getTextContent.mockResolvedValue({
+        items: [{ str: 'Page 1 text' }, { str: 'Page 1 more' }],
+      });
+
+      const result = await DocumentParser.parseFile(mockFile);
+
+      expect(pdfjsLib.getDocument).toHaveBeenCalledWith({ data: mockBuffer });
+      expect(result.text).toContain('Page 1 text');
+      expect(result.metadata?.fileType).toBe('pdf');
+      expect(result.metadata?.pageCount).toBe(2);
+    });
+
+    it('should handle multi-page PDF extraction', async () => {
+      const mockArrayBuffer = new ArrayBuffer(200);
+      const mockBuffer = Buffer.from(mockArrayBuffer);
+      
+      const mockPdf = {
+        numPages: 3,
+        getPage: vi.fn(),
+      };
+      
+      const mockPage1 = {
+        getTextContent: vi.fn().mockResolvedValue({
+          items: [{ str: 'Page 1' }],
+        }),
+      };
+      
+      const mockPage2 = {
+        getTextContent: vi.fn().mockResolvedValue({
+          items: [{ str: 'Page 2' }],
+        }),
+      };
+      
+      const mockPage3 = {
+        getTextContent: vi.fn().mockResolvedValue({
+          items: [{ str: 'Page 3' }],
+        }),
+      };
+      
+      const mockFile = {
+        name: 'multipage.pdf',
+        size: 200,
+        arrayBuffer: async () => mockArrayBuffer,
+      } as unknown as File;
+
+      (pdfjsLib.getDocument as any).mockReturnValue({
+        promise: Promise.resolve(mockPdf),
+      });
+
+      mockPdf.getPage
+        .mockResolvedValueOnce(mockPage1)
+        .mockResolvedValueOnce(mockPage2)
+        .mockResolvedValueOnce(mockPage3);
+
+      const result = await DocumentParser.parseFile(mockFile);
+
+      expect(result.text).toContain('Page 1');
+      expect(result.text).toContain('Page 2');
+      expect(result.text).toContain('Page 3');
+      expect(result.metadata?.pageCount).toBe(3);
+    });
+
+    it('should reject empty PDF files', async () => {
+      const mockFile = {
+        name: 'empty.pdf',
+        size: 0,
+        arrayBuffer: async () => new ArrayBuffer(0),
+      } as unknown as File;
+
+      await expect(DocumentParser.parseFile(mockFile)).rejects.toThrow('PDF file is empty');
+    });
+
+    it('should handle PDFs with no extractable text (scanned/image-only)', async () => {
+      const mockArrayBuffer = new ArrayBuffer(100);
+      const mockBuffer = Buffer.from(mockArrayBuffer);
+      
+      const mockPdf = {
+        numPages: 1,
+        getPage: vi.fn(),
+      };
+      
+      const mockPage = {
+        getTextContent: vi.fn().mockResolvedValue({
+          items: [],
+        }),
+      };
+      
+      const mockFile = {
+        name: 'scanned.pdf',
+        size: 100,
+        arrayBuffer: async () => mockArrayBuffer,
+      } as unknown as File;
+
+      (pdfjsLib.getDocument as any).mockReturnValue({
+        promise: Promise.resolve(mockPdf),
+      });
+
+      mockPdf.getPage.mockResolvedValue(mockPage);
+
+      await expect(DocumentParser.parseFile(mockFile)).rejects.toThrow('no extractable text');
+    });
+
+    it('should handle corrupted/malformed PDF', async () => {
+      const mockFile = {
+        name: 'corrupt.pdf',
+        size: 100,
+        arrayBuffer: async () => new ArrayBuffer(100),
+      } as unknown as File;
+
+      (pdfjsLib.getDocument as any).mockReturnValue({
+        promise: Promise.reject(new Error('Invalid PDF structure')),
+      });
+
+      await expect(DocumentParser.parseFile(mockFile)).rejects.toThrow('PDF file is corrupted or malformed');
+    });
+
+    it('should handle password-protected PDF', async () => {
+      const mockFile = {
+        name: 'protected.pdf',
+        size: 100,
+        arrayBuffer: async () => new ArrayBuffer(100),
+      } as unknown as File;
+
+      (pdfjsLib.getDocument as any).mockReturnValue({
+        promise: Promise.reject(new Error('password required')),
+      });
+
+      await expect(DocumentParser.parseFile(mockFile)).rejects.toThrow('PDF is password-protected');
+    });
+
+    it('should enforce 100,000 character limit', async () => {
+      const mockArrayBuffer = new ArrayBuffer(100);
+      const mockBuffer = Buffer.from(mockArrayBuffer);
+      
+      const mockPdf = {
+        numPages: 1,
+        getPage: vi.fn(),
+      };
+      
+      const longText = 'a'.repeat(150000);
+      const mockPage = {
+        getTextContent: vi.fn().mockResolvedValue({
+          items: [{ str: longText }],
+        }),
+      };
+      
+      const mockFile = {
+        name: 'long.pdf',
+        size: 100,
+        arrayBuffer: async () => mockArrayBuffer,
+      } as unknown as File;
+
+      (pdfjsLib.getDocument as any).mockReturnValue({
+        promise: Promise.resolve(mockPdf),
+      });
+
+      mockPdf.getPage.mockResolvedValue(mockPage);
+
+      const result = await DocumentParser.parseFile(mockFile);
+
+      expect(result.text.length).toBe(100000);
+      expect(result.text.length).toBeLessThanOrEqual(100000);
+    });
+
+    it('should convert parser errors to safe application errors', async () => {
+      const mockFile = {
+        name: 'error.pdf',
+        size: 100,
+        arrayBuffer: async () => new ArrayBuffer(100),
+      } as unknown as File;
+
+      (pdfjsLib.getDocument as any).mockReturnValue({
+        promise: Promise.reject(new Error('Some internal error')),
+      });
+
+      await expect(DocumentParser.parseFile(mockFile)).rejects.toThrow('Failed to parse PDF file');
+      // Ensure no internal stack trace is exposed
+      expect(await DocumentParser.parseFile(mockFile).catch((e: Error) => e.message)).not.toContain('Some internal error');
+    });
+
+    it('should not configure browser worker for server-side parsing', async () => {
+      const mockArrayBuffer = new ArrayBuffer(100);
+      const mockBuffer = Buffer.from(mockArrayBuffer);
+      
+      const mockPdf = {
+        numPages: 1,
+        getPage: vi.fn(),
+      };
+      
+      const mockPage = {
+        getTextContent: vi.fn().mockResolvedValue({
+          items: [{ str: 'Test text' }],
+        }),
+      };
+      
+      const mockFile = {
+        name: 'test.pdf',
+        size: 100,
+        arrayBuffer: async () => mockArrayBuffer,
+      } as unknown as File;
+
+      (pdfjsLib.getDocument as any).mockReturnValue({
+        promise: Promise.resolve(mockPdf),
+      });
+
+      mockPdf.getPage.mockResolvedValue(mockPage);
+
+      await DocumentParser.parseFile(mockFile);
+
+      // Verify pdfjs-dist legacy build was called directly without worker configuration
+      expect(pdfjsLib.getDocument).toHaveBeenCalledWith({ data: mockBuffer });
+      expect(pdfjsLib.getDocument).toHaveBeenCalledTimes(1);
     });
   });
 });
